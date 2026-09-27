@@ -4,14 +4,13 @@ import hashlib
 import base64
 import requests
 
-from flask import Flask, redirect, request
+from flask import Flask, redirect
 
 app = Flask(__name__)
 
 CLIENT_ID = os.environ["X_CLIENT_ID"]
 REDIRECT_URI = "https://florida-sports-bot.onrender.com/callback"
 
-# Temporary storage for the login attempt
 oauth_state = None
 code_verifier = None
 
@@ -29,7 +28,7 @@ def create_code_challenge(verifier):
 def home():
     return """
     <h1>Florida Sports Bot</h1>
-    <p>My sports bot is running.</p>
+    <p>Your bot is running.</p>
     <p><a href="/login">Connect my X account</a></p>
     """
 
@@ -64,7 +63,7 @@ def callback():
     state = request.args.get("state")
 
     if not code or state != oauth_state:
-        return "Login failed: invalid state or missing code.", 400
+        return "Login failed.", 400
 
     token_response = requests.post(
         "https://api.x.com/2/oauth2/token",
@@ -82,12 +81,28 @@ def callback():
         return f"Token exchange failed: {token_response.text}", 400
 
     token_data = token_response.json()
+    access_token = token_data["access_token"]
 
-    return f"""
-    <h1>Success!</h1>
-    <p>Your X account is connected.</p>
-    <p>Your bot now has authorization to use your X account.</p>
-    <p>Do not share these credentials.</p>
+    # TEST POST
+    post_response = requests.post(
+        "https://api.x.com/2/tweets",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "text": "Florida Sports Bot is officially connected. 🏈⚾️🏀⚽️"
+        },
+        timeout=30,
+    )
+
+    if post_response.status_code not in (200, 201):
+        return f"X connection worked, but posting failed: {post_response.text}", 400
+
+    return """
+    <h1>🎉 Success!</h1>
+    <p>Your Florida Sports Bot successfully posted to X.</p>
+    <p>Go check your X account.</p>
     """
 
 
