@@ -4,7 +4,7 @@ import hashlib
 import base64
 import requests
 
-from flask import Flask, redirect
+from flask import Flask, redirect, request
 
 app = Flask(__name__)
 
@@ -63,7 +63,7 @@ def callback():
     state = request.args.get("state")
 
     if not code or state != oauth_state:
-        return "Login failed.", 400
+        return "Login failed: invalid state or missing authorization code.", 400
 
     token_response = requests.post(
         "https://api.x.com/2/oauth2/token",
@@ -83,7 +83,7 @@ def callback():
     token_data = token_response.json()
     access_token = token_data["access_token"]
 
-    # TEST POST
+    # Make one test post
     post_response = requests.post(
         "https://api.x.com/2/tweets",
         headers={
